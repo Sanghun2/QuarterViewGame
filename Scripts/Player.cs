@@ -46,6 +46,7 @@ public class Player : MonoBehaviour
     bool isSwap;
     bool isFireReady = true;
     bool isReload;
+    bool isBorder;
 
     Vector3 moveVec;
     Vector3 dodgeVec;
@@ -58,6 +59,12 @@ public class Player : MonoBehaviour
     {
         rigid = GetComponent<Rigidbody>();
         anim = GetComponentInChildren<Animator>();
+    }
+
+    void FixedUpdate()
+    {
+        FreezeRotation();
+        StopToWall();
     }
 
     void Update()
@@ -145,8 +152,11 @@ public class Player : MonoBehaviour
         {
             moveVec = Vector3.zero;
         }
-        
-        transform.position += moveVec * speed * Time.deltaTime * (wDown ? 0.3f : 1f);
+
+        if (!isBorder)
+        {
+            transform.position += moveVec * speed * Time.deltaTime * (wDown ? 0.3f : 1f);
+        }
 
         anim.SetBool("IsRun", moveVec != Vector3.zero);
         anim.SetBool("IsWalk", wDown);
@@ -209,8 +219,6 @@ public class Player : MonoBehaviour
 
         int weaponIndex = -1;
         weaponIndex = sDown1 ? 0 : sDown2 ? 1 : sDown3 ? 2 : -1;
-
-        Debug.Log(weaponIndex);
 
         if ((sDown1 || sDown2 || sDown3) && !isJump && !isDodge)
         {
@@ -316,5 +324,17 @@ public class Player : MonoBehaviour
         {
             nearObject = null;
         }
+    }
+
+    void FreezeRotation()
+    {
+        rigid.angularVelocity = Vector3.zero; 
+    }
+
+    void StopToWall()
+    {
+        //시작위치, 레이방향과 길이, 색
+        Debug.DrawRay(transform.position, transform.forward*5, Color.green );
+        isBorder = Physics.Raycast(transform.position, moveVec, 5, LayerMask.GetMask("Wall"));
     }
 }
