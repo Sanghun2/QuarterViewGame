@@ -9,6 +9,7 @@ public class Player : MonoBehaviour
     Weapon equipWeapon;
     int equipWeaponIndex;
     public bool[] hasWeapons;
+    public GameObject grenadeObj;
 
     [Header("카메라")]
     [Space(10f)]
@@ -38,6 +39,7 @@ public class Player : MonoBehaviour
     bool sDown3;
     bool fDown;
     bool rDown;
+    bool gDown;
 
     float fireDelay;
 
@@ -78,6 +80,7 @@ public class Player : MonoBehaviour
         Swap();
         Attack();
         Reload();
+        Grenade();
     }
 
     void GetInput()
@@ -92,6 +95,34 @@ public class Player : MonoBehaviour
         sDown3 = Input.GetButtonDown("Swap3");
         fDown = Input.GetButton("Fire1");
         rDown = Input.GetButtonDown("Reload");
+        gDown = Input.GetButtonDown("Fire2");
+    }
+
+    void Grenade()
+    {
+        if (hasGrenades == 0)
+        {
+            return;
+        }
+
+        if (gDown && !isReload && !isSwap)
+        {
+            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition); //스크린에서 월드로 Ray를 쏘는 함수
+            RaycastHit rayHit;
+            if (Physics.Raycast(ray, out rayHit, 100)) //out은 ruturn처럼 반환값을 주어진 변수에 저장하는 키워드
+            {
+                Vector3 nextVec = rayHit.point - transform.position;
+                nextVec.y = 10;
+
+                GameObject instantGrenade = Instantiate(grenadeObj, transform.position, transform.rotation);
+                Rigidbody rigidGrenade = instantGrenade.GetComponent<Rigidbody>();
+                rigidGrenade.AddForce(nextVec, ForceMode.Impulse);
+                rigidGrenade.AddTorque(Vector3.back*10, ForceMode.Impulse);
+
+                hasGrenades--;
+                grenades[hasGrenades].SetActive(false);
+            }
+        }
     }
 
     void Reload()
@@ -313,7 +344,7 @@ public class Player : MonoBehaviour
                 default:
                     break;
             }
-
+            Debug.Log("아이템 접촉");
             Destroy(other.gameObject);
         }
     }
