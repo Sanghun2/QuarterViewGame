@@ -6,10 +6,11 @@ public class Player : MonoBehaviour
 {
     [SerializeField] float speed;
     public GameObject[] weapons;
-    Weapon equipWeapon;
+    public Weapon equipWeapon;
     int equipWeaponIndex;
     public bool[] hasWeapons;
     public GameObject grenadeObj;
+    public int score;
 
     [Header("Ä«¸Þ¶ó")]
     [Space(10f)]
@@ -50,6 +51,7 @@ public class Player : MonoBehaviour
     bool isReload;
     bool isBorder;
     bool isDamage;
+    public bool isShop;
 
     Vector3 moveVec;
     Vector3 dodgeVec;
@@ -133,7 +135,7 @@ public class Player : MonoBehaviour
         if (equipWeapon == null) return;
         if (equipWeapon.type == Weapon.Type.Melee) return;
         if (ammo == 0) return;
-        if (rDown && !isDodge && !isJump && !isSwap && isFireReady)
+        if (rDown && !isDodge && !isJump && !isSwap && isFireReady && !isShop)
         {
             anim.SetTrigger("DoReload");
             isReload = true;
@@ -165,7 +167,7 @@ public class Player : MonoBehaviour
         fireDelay += Time.deltaTime;
         isFireReady = equipWeapon.rate < fireDelay;
 
-        if (fDown && isFireReady && !isDodge && !isSwap)
+        if (fDown && isFireReady && !isDodge && !isSwap && !isShop)
         {
             equipWeapon.Use();
             anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ?  "DoSwing" : "DoShot");
@@ -283,10 +285,16 @@ public class Player : MonoBehaviour
             if (nearObject.tag == "Weapon")
             {
                 Item item = nearObject.GetComponent<Item>();
-                int weaponIndex = item.value;
+                int weaponIndex = item.value; 
                 hasWeapons[weaponIndex] = true;
 
                 Destroy(nearObject);
+            }
+            else if (nearObject.tag == "Shop")
+            {
+                Shop shop = nearObject.GetComponent<Shop>();
+                shop.Enter(this);
+                isShop = true;
             }
         }
     }
@@ -302,7 +310,7 @@ public class Player : MonoBehaviour
 
     void OnTriggerStay(Collider other)
     {
-        if (other.tag == "Weapon")
+        if (other.tag == "Weapon" || other.tag == "Shop")
         {
             nearObject = other.gameObject;
         }
@@ -321,6 +329,7 @@ public class Player : MonoBehaviour
                     {
                         ammo = maxAmmo;
                     }
+                    Destroy(other.gameObject);
                     break;
                 case Item.Type.Coin:
                     coin += item.value;
@@ -328,13 +337,14 @@ public class Player : MonoBehaviour
                     {
                         coin = maxCoin;
                     }
+                    Destroy(other.gameObject);
                     break;
                 case Item.Type.Grenade:
-                    grenades[hasGrenades].SetActive(true);
-                    hasGrenades += item.value;
-                    if (hasGrenades > maxHasGrenades)
+                    if (hasGrenades < maxHasGrenades)
                     {
-                        hasGrenades = maxHasGrenades;
+                        grenades[hasGrenades].SetActive(true);
+                        hasGrenades += item.value;
+                        Destroy(other.gameObject);
                     }
                     break;
                 case Item.Type.Heart:
@@ -343,11 +353,12 @@ public class Player : MonoBehaviour
                     {
                         health = maxHealth;
                     }
+                    Destroy(other.gameObject);
                     break;
                 default:
                     break;
             }
-            Destroy(other.gameObject);
+            
         }
         else if (other.tag == "EnemyBullet")
         {
@@ -355,27 +366,41 @@ public class Player : MonoBehaviour
             {
                 Bullet enemyBullet = other.GetComponent<Bullet>();
                 health -= enemyBullet.damage;
-                if (other.GetComponent <Rigidbody>() != null)
-                {
-                    Destroy(other.gameObject);
-                }
-                StartCoroutine(OnDamage());
+
+                bool isBossAtk = other.name == "Boss Melee Area";
+                StartCoroutine(OnDamage(isBossAtk));
+            }
+
+            if (other.GetComponent<Rigidbody>() != null)
+            {
+                Destroy(other.gameObject);
             }
         }
     }
 
-    IEnumerator OnDamage()
+    IEnumerator OnDamage(bool isBossAtk)
     {
         isDamage = true;
         foreach (var mesh in meshes)
         {
             mesh.material.color = Color.yellow;
         }
+
+        if (isBossAtk)
+        {
+            rigid.AddForce(transform.forward * -25, ForceMode.Impulse); ;
+        }
+
         yield return new WaitForSeconds(1f);
         isDamage = false;
         foreach (var mesh in meshes)
         {
             mesh.material.color = Color.white;
+        }
+
+        if (isBossAtk)
+        {
+            rigid.velocity = Vector3.zero;
         }
     }
 
@@ -384,6 +409,13 @@ public class Player : MonoBehaviour
         if (other.tag == "Weapon")
         {
             nearObject = null;
+        }
+        else if (other.tag == "Shop")
+        {
+            Shop shop = nearObject.GetComponent<Shop>();
+            shop.Exit();
+            nearObject = null;
+            isShop = false;
         }
     }
 
