@@ -35,7 +35,7 @@ public class Boss : Enemy
         }
 
         //플레이어가 가는 방향을 예측해서 그 쪽을 바라봄
-        if (isLook)
+        if (isLook && !isDead)
         {
             float h = Input.GetAxisRaw("Horizontal");
             float v = Input.GetAxisRaw("Vertical");
@@ -44,7 +44,10 @@ public class Boss : Enemy
         }
         else
         {
-            nav.SetDestination(tauntVec);
+            if (!isDead)
+            {
+                nav.SetDestination(tauntVec);
+            }
         }
     }
 

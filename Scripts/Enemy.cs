@@ -8,6 +8,9 @@ public class Enemy : MonoBehaviour
     public enum Type { A,B,C,D};
     public Type enemyType;
 
+    public int score;
+    public GameObject[] coins;
+
     public int maxHealth;
     public int curHealth;
     public Transform target;
@@ -23,6 +26,8 @@ public class Enemy : MonoBehaviour
     internal MeshRenderer[] meshes;
     internal NavMeshAgent nav;
     internal Animator anim;
+
+    public GameManager gameManager;
 
     void Awake()
     {
@@ -210,6 +215,29 @@ public class Enemy : MonoBehaviour
             nav.enabled = false;
             anim.SetTrigger("doDie");
 
+            Player player = target.GetComponent<Player>();
+            player.score += score;
+            int ranCoin = Random.Range(0, 3);
+            Instantiate(coins[ranCoin], transform.position, Quaternion.identity);
+
+            switch (enemyType)
+            {
+                case Type.A:
+                    gameManager.enemyCntA--;
+                    break;
+                case Type.B:
+                    gameManager.enemyCntB--;
+                    break;
+                case Type.C:
+                    gameManager.enemyCntC--;
+                    break;
+                case Type.D:
+                    gameManager.enemyCntD--;
+                    break;
+                default:
+                    break;
+            }
+
             if (isGrenade)
             {
                 reactVec = reactVec.normalized;
@@ -227,10 +255,8 @@ public class Enemy : MonoBehaviour
             }
             
             isDead = true;
-            if (enemyType != Type.D)
-            {
-                Destroy(gameObject, 4f);
-            }
+            StopAllCoroutines();
+            Destroy(gameObject, 4f);
         }
     }
 }
